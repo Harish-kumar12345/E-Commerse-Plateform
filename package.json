@@ -1,0 +1,24 @@
+{
+  "name": "nexus-marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NEXUS Multi-Vendor E-Commerce Marketplace Monorepo",
+  "packageManager": "pnpm@12.11.2",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "db:generate": "pnpm --filter @nexus/db db:generate",
+    "db:push": "pnpm --filter @nexus/db db:push",
+    "db:migrate": "pnpm --filter @nexus/db db:migrate",
+    "db:seed": "pnpm --filter @nexus/db db:seed",
+    "db:studio": "pnpm --filter @nexus/db db:studio",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.4",
+    "typescript": "^5.7.3",
+    "prettier": "^3.5.3"
+  }
+}
