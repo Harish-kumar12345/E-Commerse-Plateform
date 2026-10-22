@@ -63,15 +63,51 @@ This document outlines the deployment procedure, infrastructure topologies, secu
 
 ## 3. DEPLOYMENT INSTRUCTIONS
 
-### Option A: Vercel (`apps/web`) + Cloud Run (`apps/api`) [Recommended]
+### Option A: Render (Monorepo Blueprint or Manual Services)
 
-#### 1. Deploy Fastify API on Cloud Run / Render:
-```bash
-# In apps/api
-docker build -t nexus-api:latest .
-# Set Environment Variables:
-# DATABASE_URL, JWT_ACCESS_SECRET, STOREFRONT_URL, PORT=4000
-```
+#### Method 1: 1-Click Render Blueprint (`render.yaml`)
+1. Push your repository to GitHub.
+2. In the [Render Dashboard](https://dashboard.render.com), click **New +** > **Blueprint**.
+3. Select your repository. Render reads [render.yaml](file:///d:/Internship/E-commerce/render.yaml) and automatically provisions:
+   - **PostgreSQL Database** (`nexus-db`)
+   - **Fastify API Web Service** (`nexus-api`)
+   - **Next.js Web Storefront** (`nexus-web`)
+4. Fill in `STOREFRONT_URL` (e.g. `https://nexus-web.onrender.com`) and `NEXT_PUBLIC_API_URL` (e.g. `https://nexus-api.onrender.com/api/v1`) in the prompt.
+5. Click **Apply**.
+
+#### Method 2: Manual Setup on Render
+1. **Create Managed PostgreSQL**:
+   - Go to **New +** > **PostgreSQL**.
+   - Name: `nexus-db`, Database: `nexus_marketplace`.
+   - Copy the **Internal Database URL**.
+2. **Deploy Fastify API**:
+   - Go to **New +** > **Web Service** > Connect Repo.
+   - **Environment:** Node
+   - **Build Command:** `npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @nexus/db db:generate && pnpm --filter @nexus/db db:push && pnpm turbo run build --filter=@nexus/api...`
+   - **Start Command:** `pnpm --filter @nexus/api start`
+   - **Health Check Path:** `/api/v1/health`
+   - **Env Vars:**
+     - `DATABASE_URL`: *(Paste Internal Database URL from step 1)*
+     - `NODE_ENV`: `production`
+     - `JWT_ACCESS_SECRET`: *(32+ random characters)*
+     - `JWT_REFRESH_SECRET`: *(32+ random characters)*
+     - `COOKIE_SECRET`: *(32+ random characters)*
+     - `STOREFRONT_URL`: `https://nexus-web.onrender.com`
+3. **Deploy Next.js Web Storefront**:
+   - Go to **New +** > **Web Service** > Connect Repo.
+   - **Environment:** Node
+   - **Build Command:** `npm install -g pnpm && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@nexus/web...`
+   - **Start Command:** `pnpm --filter @nexus/web start`
+   - **Env Vars:**
+     - `NODE_ENV`: `production`
+     - `NEXT_PUBLIC_API_URL`: `https://nexus-api.onrender.com/api/v1`
+
+---
+
+### Option B: Vercel (`apps/web`) + Render (`apps/api` & PostgreSQL)
+
+#### 1. Deploy Fastify API on Render:
+- Follow Step 1 & 2 of the manual Render setup above.
 
 #### 2. Deploy Next.js Web on Vercel:
 - **Framework Preset:** Next.js
@@ -79,11 +115,11 @@ docker build -t nexus-api:latest .
 - **Build Command:** `cd ../.. && pnpm --filter @nexus/web build`
 - **Output Directory:** `.next`
 - **Environment Variables:**
-  - `NEXT_PUBLIC_API_URL=https://api.nexusmarket.in`
+  - `NEXT_PUBLIC_API_URL=https://nexus-api.onrender.com/api/v1`
 
 ---
 
-### Option B: Docker Compose (Single Host / VPS)
+### Option C: Docker Compose (Single Host / VPS)
 ```bash
 # Launch database, redis, API, and web storefront
 docker-compose up -d --build
